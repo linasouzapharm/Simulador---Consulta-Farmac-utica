@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPG Clínico 3D — Método Dáder | Caso Joana</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Radley:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #F5F1EB;
+      --cream-2: #EAE2D5;
+      --teal: #174B52;
+      --teal-dark: #0D2E33;
+      --teal-2: #246670;
+      --sage: #7FA19D;
+      --lime: #8DB838;
+      --lime-dark: #668821;
+      --terracotta: #E07A5F;
+      --ochre: #E2AD3B;
+      --white: #FFFFFF;
+      --ink: #163337;
+      --muted: #536D71;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 15% 10%, #FAF7F2 0%, var(--cream) 70%, #E7DFD2 100%);
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    .app-shell {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 10px solid var(--teal);
+    }
+
+    /* TOPBAR COMPACTA */
+    header {
+      background: linear-gradient(180deg, #FFFFFF 0%, #FAF8F4 100%);
+      border-bottom: 1.5px solid #DDD3C2;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chevron-3d {
+      width: 16px;
+      height: 24px;
+      background: linear-gradient(135deg, #A3CE4B 0%, var(--lime) 60%, var(--lime-dark) 100%);
+      clip-path: polygon(0 0, 58% 0, 100% 50%, 58% 100%, 0 100%, 42% 50%);
+    }
+
+    .brand h1 {
+      font-family: "Radley", Georgia, serif;
+      font-size: 1.18rem;
+      color: var(--teal);
+      font-weight: 400;
+    }
+
+    .hud-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-pill {
+      background: var(--cream);
+      border: 1.5px solid #D5CBB9;
+      box-shadow: 0 2px 0 #C8BCA8;
+      color: var(--teal);
+      font-weight: 800;
+      font-size: 0.76rem;
+      padding: 4px 11px;
+      border-radius: 999px;
+    }
+
+    .hud-btn {
+      background: linear-gradient(180deg, #FFFFFF 0%, #EEF4F4 100%);
+      border: 1.5px solid var(--teal);
+      box-shadow: 0 2px 0 var(--teal);
+      color: var(--teal);
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 4px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .hud-btn.active {
+      background: linear-gradient(180deg, #A2CE49 0%, var(--lime) 100%);
+      border-color: var(--lime-dark);
+      box-shadow: 0 2px 0 var(--lime-dark);
+      color: var(--ink);
+    }
+
+    /* STEPPER DE 7 FASES */
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      padding: 7px 18px;
+      background: var(--cream-2);
+      border-bottom: 1px solid #D5CBB9;
+      flex-shrink: 0;
+    }
+
+    .step-tab {
+      background: var(--white);
+      border: 1.5px solid #D3C8B6;
+      box-shadow: 0 2px 0 #C5B9A6;
+      border-radius: 8px;
+      padding: 5px 4px;
+      text-align: center;
+      font-size: 0.71rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .step-tab.clickable { cursor: pointer; }
+    .step-tab.active {
+      background: #F7FDEC;
+      border-color: var(--lime);
+      box-shadow: 0 2px 0 var(--lime-dark);
+      color: var(--teal);
+    }
+    .step-tab.done {
+      background: var(--teal);
+      border-color: var(--teal-dark);
+      box-shadow: 0 2px 0 var(--teal-dark);
+      color: var(--white);
+    }
+
+    /* GRID PRINCIPAL: PALCO + AÇÕES À ESQUERDA | PRONTUÁRIO SEMPRE VISÍVEL À DIREITA */
+    .workspace {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.85fr 0.85fr;
+      gap: 14px;
+      padding: 12px 18px 14px;
+    }
+
+    @media (max-width: 960px) {
+      html, body { overflow-y: auto; }
+      .app-shell { height: auto; min-height: 100vh; }
+      .workspace { grid-template-columns: 1fr; }
+    }
+
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    /* CENÁRIO 3D SEMPRE VISÍVEL NO TOPO DA COLUNA ESQUERDA */
+    .stage-card {
+      flex: 0 0 43%;
+      min-height: 215px;
+      background: #E8F0EE;
+      border-radius: 18px;
+      border: 1.5px solid #D6CCB9;
+      box-shadow: 0 8px 20px rgba(13, 46, 51, 0.09), 0 3px 0 #C8BCA8;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scene-tag {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      z-index: 3;
+      background: var(--teal);
+      color: var(--white);
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 4px 11px;
+      border-radius: 999px;
+      box-shadow: 0 2px 0 var(--teal-dark);
+    }
+
+    .mood-tag {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      z-index: 3;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1.5px solid #C8D4D2;
+      color: var(--teal);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 11px;
+      border-radius: 999px;
+    }
+
+    /* PAINEL DE DIÁLOGO E ESCOLHAS LOGO ABAIXO DO CENÁRIO */
+    .control-card {
+      flex: 1;
+      min-height: 0;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FCFBF9 100%);
+      border-radius: 18px;
+      border: 1.5px solid #D8CEBC;
+      box-shadow: 0 8px 20px rgba(13, 46, 51, 0.08), 0 4px 0 #C9BEB0;
+      padding: 13px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .ctrl-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .phase-title {
+      font-family: "Radley", Georgia, serif;
+      font-size: 1.22rem;
+      color: var(--teal);
+    }
+
+    .goal-badge {
+      background: #EEF6F4;
+      border: 1px dashed var(--sage);
+      color: var(--teal);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .speech-bar {
+      background: linear-gradient(180deg, #FAF7F2 0%, #F3EDE3 100%);
+      border-left: 4px solid var(--lime);
+      border-radius: 0 10px 10px 0;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .speech-bar .spk {
+      font-weight: 800;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-right: 5px;
+    }
+
+    .options-2col {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 780px) {
+      .options-2col { grid-template-columns: 1fr; }
+    }
+
+    .arc-btn {
+      text-align: left;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F6F9F8 100%);
+      border: 1.5px solid #C4D2D0;
+      box-shadow: 0 3px 0 #B3C2C0;
+      border-radius: 11px;
+      padding: 8px 11px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      line-height: 1.33;
+      color: var(--ink);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.15s ease;
+    }
+
+    .arc-btn:hover:not(:disabled) {
+      border-color: var(--teal);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 0 #9BB0AD;
+    }
+
+    .arc-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #9BB0AD;
+    }
+
+    .arc-btn.done {
+      background: linear-gradient(180deg, #F7FDEB 0%, #EAF6D3 100%);
+      border-color: var(--lime);
+      box-shadow: 0 3px 0 var(--lime-dark);
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .arc-btn:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+      background: #F3EFE7;
+      box-shadow: 0 2px 0 #D6CDBD;
+    }
+
+    .tag-mini {
+      font-size: 0.67rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #E4ECEB;
+      color: var(--teal);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .arc-btn.done .tag-mini {
+      background: var(--lime);
+      color: var(--white);
+    }
+
+    .ctrl-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .toast-bar {
+      flex: 1;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 9px;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    .toast-ok { background: #ECF7E2; border: 1px solid var(--lime); color: #1B431E; }
+    .toast-err { background: #FDEFEB; border: 1px solid var(--terracotta); color: #7C2A17; }
+    .toast-neutral { background: #F4F0E8; border: 1px solid #DFD6C7; color: var(--muted); }
+
+    .next-3d {
+      background: linear-gradient(180deg, #246670 0%, var(--teal) 100%);
+      color: var(--white);
+      border: 1.5px solid var(--teal-dark);
+      box-shadow: 0 3px 0 var(--teal-dark);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .next-3d:disabled {
+      background: #B9C7C9;
+      border-color: #9FB0B2;
+      box-shadow: 0 2px 0 #8E9FA1;
+      cursor: not-allowed;
+    }
+
+    /* COLUNA DIREITA: PRONTUÁRIO DE PISTAS SEMPRE VISÍVEL */
+    .dossier-card {
+      background: linear-gradient(180deg, #FFFFFF 0%, #FCFBF9 100%);
+      border-radius: 18px;
+      border: 1.5px solid #D8CEBC;
+      box-shadow: 0 8px 20px rgba(13, 46, 51, 0.08), 0 4px 0 #C9BEB0;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .dossier-head {
+      background: linear-gradient(180deg, #22616B 0%, var(--teal) 100%);
+      color: var(--white);
+      padding: 11px 15px;
+      font-family: "Radley", Georgia, serif;
+      font-size: 1.06rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--teal-dark);
+      flex-shrink: 0;
+    }
+
+    .dossier-list {
+      padding: 11px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .clue-item {
+      background: linear-gradient(180deg, #FAF7F2 0%, var(--cream) 100%);
+      border-left: 4px solid var(--sage);
+      border-top: 1px solid #EAE2D5;
+      border-right: 1px solid #EAE2D5;
+      border-bottom: 1px solid #DDD3C2;
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 0.79rem;
+      line-height: 1.36;
+    }
+
+    .clue-item strong { display: block; color: var(--teal); margin-bottom: 1px; }
+    .clue-item.rnm { border-left-color: var(--terracotta); background: #FDF3F0; }
+    .clue-item.win { border-left-color: var(--lime); background: #F3FAEA; }
+
+    .empty-dossier {
+      color: var(--muted);
+      font-size: 0.81rem;
+      text-align: center;
+      padding: 24px 12px;
+      line-height: 1.45;
+    }
+
+    /* COMPONENTES COMPACTOS (ETAPAS 3 E 5) */
+    .state-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mini-row {
+      background: #FAF7F2;
+      border: 1px solid #DCD2C1;
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-size: 0.79rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select.sel-3d {
+      padding: 4px 7px;
+      border-radius: 7px;
+      border: 1.5px solid var(--sage);
+      font-weight: 700;
+      color: var(--teal);
+      background: #FFFFFF;
+      font-size: 0.78rem;
+    }
+
+    .algo-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #FAF7F2;
+      border: 1.5px solid #D7CCBA;
+      border-radius: 11px;
+      padding: 9px 13px;
+      flex-wrap: wrap;
+    }
+
+    .yn-group { display: flex; gap: 8px; }
+    .yn-btn {
+      padding: 7px 18px;
+      border-radius: 9px;
+      border: 1.5px solid var(--teal);
+      background: #FFFFFF;
+      box-shadow: 0 3px 0 var(--teal);
+      color: var(--teal);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .yn-btn:hover { background: var(--teal); color: var(--white); }
+
+    /* ANIMAÇÕES SEGURAS PARA SVG (SEM SOBRESCREVER TRANSLATE EXTERNO) */
+    @keyframes breathe {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes fadeInChar {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    @keyframes fadeOutChar {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .anim-breathe { animation: breathe 3s ease-in-out infinite; }
+    .anim-float { animation: floatIcon 2.5s ease-in-out infinite; }
+    .char-fade-in { animation: fadeInChar 0.45s ease forwards; }
+    .char-fade-out { animation: fadeOutChar 0.45s ease forwards; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- TOPO -->
+    <header>
+      <div class="brand">
+        <div class="chevron-3d"></div>
+        <h1>RPG Clínico 3D — Método Dáder • Caso Joana (30 anos)</h1>
+      </div>
+      <div class="hud-right">
+        <div class="hud-pill">Precisão: <span id="hudScore">100</span>%</div>
+        <button type="button" class="hud-btn" id="freeBtn" onclick="toggleFree()">Modo Aula Livre: OFF</button>
+      </div>
+    </header>
+
+    <!-- BARRA DE ETAPAS -->
+    <nav class="stepper" id="stepper"></nav>
+
+    <!-- ÁREA DE TRABALHO: ESQUERDA (CENÁRIO + AÇÕES) | DIREITA (PRONTUÁRIO) -->
+    <main class="workspace">
+      <div class="left-column">
+        <section class="stage-card" id="stageCard"></section>
+        <section class="control-card" id="controlCard"></section>
+      </div>
+
+      <aside class="dossier-card">
+        <div class="dossier-head">
+          <span>📋 Prontuário de Pistas</span>
+          <small style="font-family:inherit; font-weight:700; opacity:0.9;"><span id="hudClues">0</span>/9 pistas</small>
+        </div>
+        <div class="dossier-list" id="dossierList">
+          <div class="empty-dossier">As pistas clínicas coletadas com Joana e os registros do Método Dáder aparecerão aqui em tempo real.</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const STEPS = [
+      "1. Oferta (Balcão)",
+      "2. 1ª Entrevista",
+      "3. Estado Situação",
+      "4. Fase de Estudo",
+      "5. Avaliação RNM",
+      "6. Plano Atuação",
+      "7. Retorno (6 sem.)"
+    ];
+
+    const state = {
+      step: 0,
+      score: 100,
+      free: false,
+      clues: [],
+      toast: { text: "Clique nas ações abaixo para conduzir o atendimento.", kind: "neutral" },
+      joanaLeaving: false,
+      p1Box: false,
+      p1Offer: false,
+      p2Symp: false,
+      p2Meds: false,
+      p2How: false,
+      p2Adh: false,
+      p3Ok: false,
+      p4Mech: false,
+      p4Time: false,
+      p5Idx: 0,
+      p5Done: false,
+      p6Goal: false,
+      p6Plan: false,
+      p6Sheet: false,
+      p7Done: false
+    };
+
+    function toggleFree() {
+      state.free = !state.free;
+      const btn = document.getElementById("freeBtn");
+      btn.textContent = "Modo Aula Livre: " + (state.free ? "ON" : "OFF");
+      btn.classList.toggle("active", state.free);
+      render();
+    }
+
+    function addClue(id, title, text, kind) {
+      if (state.clues.some(function (c) { return c.id === id; })) return;
+      state.clues.push({ id: id, title: title, text: text, kind: kind || "base" });
+      renderDossier();
+    }
+
+    function setToast(text, kind) {
+      state.toast = { text: text, kind: kind };
+      render();
+    }
+
+    function failAction(pts, text) {
+      state.score = Math.max(50, state.score - pts);
+      setToast(text, "err");
+    }
+
+    function renderDossier() {
+      document.getElementById("hudScore").textContent = state.score;
+      document.getElementById("hudClues").textContent = state.clues.length;
+      const list = document.getElementById("dossierList");
+      if (!state.clues.length) return;
+      list.innerHTML = state.clues.map(function (c) {
+        const cls = c.kind === "rnm" ? " rnm" : (c.kind === "win" ? " win" : "");
+        return '<div class="clue-item' + cls + '"><strong>' + c.title + '</strong><span>' + c.text + '</span></div>';
+      }).join("");
+    }
+
+    function renderStepper() {
+      const nav = document.getElementById("stepper");
+      nav.innerHTML = STEPS.map(function (label, idx) {
+        let cls = "step-tab";
+        if (idx < state.step) cls += " done";
+        else if (idx === state.step) cls += " active";
+        if (state.free) cls += " clickable";
+        const fn = state.free ? ' onclick="jumpTo(' + idx + ')"' : '';
+        return '<div class="' + cls + '"' + fn + '>' + label + '</div>';
+      }).join("");
+    }
+
+    function jumpTo(idx) {
+      if (!state.free) return;
+      state.step = idx;
+      state.joanaLeaving = false;
+      state.toast = { text: "Navegação livre ativada.", kind: "neutral" };
+      render();
+    }
+
+    function renderStage() {
+      const card = document.getElementById("stageCard");
+      const fadeCls = state.joanaLeaving ? "char-fade-out" : "char-fade-in";
+
+      function buildJoana(x, y, mood, shirt, shade, hasBox) {
+        let mouth = '<path d="M-8 14 Q0 9 8 14" stroke="#7E4438" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+        if (mood === "neutral") {
+          mouth = '<path d="M-7 13 Q0 11 7 13" stroke="#7E4438" stroke-width="2.3" fill="none" stroke-linecap="round"/>';
+        } else if (mood === "happy") {
+          mouth = '<path d="M-9 12 Q0 21 9 12" stroke="#174B52" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+        }
+
+        const boxSvg = hasBox
+          ? '<g transform="translate(30, 36)"><polygon points="0,7 30,0 40,6 10,13" fill="#FFFFFF" stroke="#174B52" stroke-width="1.5"/><polygon points="0,7 10,13 10,31 0,25" fill="#8DB838" stroke="#174B52" stroke-width="1.5"/><polygon points="10,13 40,6 40,24 10,31" fill="#F2EFE8" stroke="#174B52" stroke-width="1.5"/></g>'
+          : '';
+
+        return (
+          '<g transform="translate(' + x + ',' + y + ')">' +
+            '<g class="' + fadeCls + '">' +
+              '<g class="anim-breathe">' +
+                '<ellipse cx="0" cy="100" rx="46" ry="9" fill="#0D2E33" opacity="0.22"/>' +
+                '<path d="M-34 -2 Q-30 -44 0 -44 Q30 -44 34 -2 L40 44 L-40 44 Z" fill="#2B1F20"/>' +
+                '<path d="M-38 96 Q-30 34 0 34 Q30 34 38 96 Z" fill="' + shirt + '"/>' +
+                '<path d="M0 34 Q30 34 38 96 L12 96 Q10 56 0 34 Z" fill="' + shade + '" opacity="0.5"/>' +
+                '<circle cx="0" cy="-2" r="25" fill="url(#skinJ)"/>' +
+                '<path d="M12 -22 A25 25 0 0 1 12 18 Q25 -2 12 -22 Z" fill="#C98D75" opacity="0.28"/>' +
+                '<circle cx="-8" cy="-5" r="2.9" fill="#174B52"/>' +
+                '<circle cx="8" cy="-5" r="2.9" fill="#174B52"/>' +
+                '<circle cx="-9" cy="-6" r="1" fill="#FFFFFF"/>' +
+                '<circle cx="7" cy="-6" r="1" fill="#FFFFFF"/>' +
+                mouth +
+                boxSvg +
+              '</g>' +
+            '</g>' +
+          '</g>'
+        );
+      }
+
+      function buildPharma(x, y, studying) {
+        const bookSvg = studying
+          ? '<g transform="translate(-44, 34)"><polygon points="0,11 42,2 84,11 42,20" fill="#FFFFFF" stroke="#174B52" stroke-width="1.8"/><line x1="42" y1="2" x2="42" y2="20" stroke="#8DB838" stroke-width="2.5"/><path d="M8 9 Q24 5 38 10" stroke="#7FA19D" stroke-width="1.5" fill="none"/><path d="M46 10 Q62 5 76 9" stroke="#7FA19D" stroke-width="1.5" fill="none"/></g>'
+          : '';
+        return (
+          '<g transform="translate(' + x + ',' + y + ')">' +
+            '<g class="anim-breathe">' +
+              '<ellipse cx="0" cy="100" rx="46" ry="9" fill="#0D2E33" opacity="0.22"/>' +
+              '<path d="M-28 -10 Q-24 -40 0 -40 Q24 -40 28 -10 Z" fill="#172427"/>' +
+              '<path d="M-38 96 Q-30 34 0 34 Q30 34 38 96 Z" fill="#FFFFFF" stroke="#174B52" stroke-width="2"/>' +
+              '<path d="M0 34 Q30 34 38 96 L13 96 Q11 56 0 34 Z" fill="#D8E4E3" opacity="0.7"/>' +
+              '<circle cx="0" cy="-4" r="24" fill="url(#skinP)"/>' +
+              '<circle cx="-8" cy="-6" r="2.8" fill="#174B52"/>' +
+              '<circle cx="8" cy="-6" r="2.8" fill="#174B52"/>' +
+              '<path d="M-7 5 Q0 11 7 5" stroke="#174B52" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+              bookSvg +
+            '</g>' +
+          '</g>'
+        );
+      }
+
+      let sceneLabel = "CENÁRIO 01 • BALCÃO DA FARMÁCIA";
+      let moodLabel = "Joana (30a): Cansada e em dúvida";
+      let svgBody = "";
+
+      if (state.step === 0) {
+        sceneLabel = "CENÁRIO 01 • BALCÃO DA FARMÁCIA";
+        moodLabel = state.p1Offer ? "Joana indo para o consultório..." : "Joana (30a): Cansada e em dúvida";
+        svgBody =
+          '<rect width="800" height="260" fill="url(#wallCounter)"/>' +
+          '<polygon points="0,192 800,192 800,260 0,260" fill="#DFD5C5"/>' +
+          '<g transform="translate(36, 36)">' +
+            '<rect x="0" y="24" width="165" height="10" rx="4" fill="#7FA19D"/>' +
+            '<rect x="14" y="6" width="24" height="18" rx="3" fill="#174B52"/>' +
+            '<rect x="44" y="9" width="28" height="15" rx="3" fill="#8DB838"/>' +
+            '<rect x="80" y="5" width="22" height="19" rx="3" fill="#E07A5F"/>' +
+            '<rect x="110" y="8" width="32" height="16" rx="3" fill="#E2AD3B"/>' +
+            '<rect x="0" y="74" width="165" height="10" rx="4" fill="#7FA19D"/>' +
+            '<rect x="20" y="56" width="26" height="18" rx="3" fill="#8DB838"/>' +
+            '<rect x="54" y="58" width="24" height="16" rx="3" fill="#174B52"/>' +
+          '</g>' +
+          '<g transform="translate(655, 38)">' +
+            '<rect x="0" y="0" width="96" height="160" rx="8" fill="#FFFFFF" stroke="#7FA19D" stroke-width="3"/>' +
+            '<rect x="8" y="10" width="80" height="146" rx="5" fill="#DCEAE7"/>' +
+            '<rect x="14" y="20" width="68" height="22" rx="5" fill="#174B52"/>' +
+            '<text x="48" y="34" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#FFFFFF">CONSULTÓRIO</text>' +
+          '</g>' +
+          buildJoana(295, 118, state.p1Box ? "neutral" : "tired", "#E07A5F", "#B25239", true) +
+          buildPharma(485, 116, false) +
+          '<polygon points="215,182 575,182 592,193 198,193" fill="#8DB838"/>' +
+          '<rect x="206" y="193" width="378" height="67" rx="6" fill="url(#tealGrad)"/>';
+      } else if (state.step === 1 || state.step === 2 || state.step === 4 || state.step === 5) {
+        sceneLabel = "CENÁRIO 02 • CONSULTÓRIO FARMACÊUTICO";
+        moodLabel = state.p6Plan ? "Joana (30a): Pactuada (+45 min)" : "Joana (30a): Em atendimento";
+        const pills = [];
+        if (state.p2Symp) pills.push('<g transform="translate(170, 44)"><g class="anim-float"><rect width="102" height="24" rx="12" fill="#FFFFFF" stroke="#E07A5F" stroke-width="1.8"/><text x="51" y="15" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#174B52">TSH: 8,4 mUI/L</text></g></g>');
+        if (state.p2Meds) pills.push('<g transform="translate(285, 28)"><g class="anim-float"><rect width="118" height="24" rx="12" fill="#FFFFFF" stroke="#8DB838" stroke-width="1.8"/><text x="59" y="15" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#174B52">+ Omeprazol 20mg</text></g></g>');
+        if (state.p2How) pills.push('<g transform="translate(415, 44)"><g class="anim-float"><rect width="122" height="24" rx="12" fill="#FFFFFF" stroke="#E2AD3B" stroke-width="1.8"/><text x="61" y="15" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#174B52">Juntos pela manhã</text></g></g>');
+
+        const planBanner = (state.step === 5 && state.p6Plan)
+          ? '<g transform="translate(255, 145)"><rect width="290" height="40" rx="9" fill="#FFFFFF" stroke="#8DB838" stroke-width="2"/><text x="145" y="16" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#174B52">Sequência Matinal Pactuada</text><text x="145" y="31" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#668821">Levotiroxina (jejum) → +45 min → Omeprazol</text></g>'
+          : '';
+
+        svgBody =
+          '<rect width="800" height="260" fill="url(#wallOffice)"/>' +
+          '<polygon points="0,192 800,192 800,260 0,260" fill="#E3DAC9"/>' +
+          '<rect x="44" y="42" width="96" height="122" rx="10" fill="#FFFFFF" stroke="#7FA19D" stroke-width="3"/>' +
+          '<rect x="50" y="48" width="84" height="110" rx="6" fill="#DCECE8"/>' +
+          '<line x1="92" y1="48" x2="92" y2="158" stroke="#FFFFFF" stroke-width="3"/>' +
+          '<line x1="50" y1="103" x2="134" y2="103" stroke="#FFFFFF" stroke-width="3"/>' +
+          '<ellipse cx="705" cy="144" rx="28" ry="21" fill="#8DB838"/>' +
+          '<polygon points="690,162 720,162 715,192 695,192" fill="#E07A5F"/>' +
+          pills.join("") +
+          buildJoana(295, 118, state.p6Plan ? "happy" : "neutral", "#E2AD3B", "#B7851D", false) +
+          buildPharma(505, 116, false) +
+          '<ellipse cx="400" cy="192" rx="155" ry="17" fill="#638581"/>' +
+          '<ellipse cx="400" cy="188" rx="155" ry="15" fill="#7FA19D"/>' +
+          '<rect x="391" y="198" width="18" height="62" fill="#174B52"/>' +
+          planBanner;
+      } else if (state.step === 3) {
+        sceneLabel = "CENÁRIO 03 • FASE DE ESTUDO (BANCADA CIENTÍFICA)";
+        moodLabel = "Farmacêutico analisando evidências";
+        svgBody =
+          '<rect width="800" height="260" fill="url(#wallOffice)"/>' +
+          '<polygon points="0,192 800,192 800,260 0,260" fill="#DFD6C5"/>' +
+          '<rect x="56" y="42" width="145" height="145" rx="9" fill="#FFFFFF" stroke="#7FA19D" stroke-width="2.5"/>' +
+          '<rect x="68" y="65" width="120" height="8" fill="#7FA19D"/>' +
+          '<rect x="74" y="47" width="16" height="18" fill="#174B52"/>' +
+          '<rect x="94" y="50" width="14" height="15" fill="#8DB838"/>' +
+          '<rect x="112" y="46" width="18" height="19" fill="#E07A5F"/>' +
+          '<rect x="68" y="108" width="120" height="8" fill="#7FA19D"/>' +
+          '<rect x="78" y="90" width="18" height="18" fill="#E2AD3B"/>' +
+          '<g transform="translate(475, 48)"><g class="anim-float"><rect width="265" height="96" rx="12" fill="#FFFFFF" stroke="#174B52" stroke-width="2"/><text x="132" y="22" text-anchor="middle" font-size="11" font-weight="bold" fill="#174B52">Evidência Farmacocinética</text><text x="132" y="42" text-anchor="middle" font-size="9.5" fill="#536D71">Omeprazol ↑ pH gástrico → ↓ absorção Levotiroxina</text><rect x="16" y="54" width="233" height="26" rx="7" fill="#F3FAEA" stroke="#8DB838" stroke-width="1.3"/><text x="132" y="70" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#174B52">Levotiroxina (jejum) + 45 min → Omeprazol</text></g></g>' +
+          buildPharma(335, 116, true) +
+          '<ellipse cx="335" cy="192" rx="165" ry="17" fill="#638581"/>' +
+          '<ellipse cx="335" cy="188" rx="165" ry="15" fill="#7FA19D"/>' +
+          '<rect x="326" y="198" width="18" height="62" fill="#174B52"/>';
+      } else {
+        sceneLabel = "CENÁRIO 04 • RETORNO NO CONSULTÓRIO (6 SEMANAS)";
+        moodLabel = "Joana (30a): Disposta • TSH 2,3 mUI/L";
+        svgBody =
+          '<rect width="800" height="260" fill="url(#wallReturn)"/>' +
+          '<polygon points="0,192 800,192 800,260 0,260" fill="#D9E8D6"/>' +
+          '<g transform="translate(46, 44)"><g class="anim-float"><rect x="4" y="4" width="185" height="102" rx="12" fill="#174B52"/><rect x="0" y="0" width="185" height="102" rx="12" fill="#FFFFFF" stroke="#8DB838" stroke-width="2.2"/><text x="92" y="22" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#174B52">Evolução • 6 Semanas</text><polyline points="24,44 88,62 156,78" fill="none" stroke="#8DB838" stroke-width="4.5" stroke-linecap="round"/><circle cx="24" cy="44" r="4.5" fill="#E07A5F"/><circle cx="156" cy="78" r="5" fill="#174B52"/><text x="92" y="93" text-anchor="middle" font-size="10" font-weight="bold" fill="#174B52">TSH: 8,4 → 2,3 mUI/L ✓</text></g></g>' +
+          buildJoana(305, 118, "happy", "#8DB838", "#668821", false) +
+          buildPharma(505, 116, false) +
+          '<ellipse cx="405" cy="192" rx="155" ry="17" fill="#638581"/>' +
+          '<ellipse cx="405" cy="188" rx="155" ry="15" fill="#7FA19D"/>' +
+          '<rect x="396" y="198" width="18" height="62" fill="#174B52"/>';
+      }
+
+      card.innerHTML =
+        '<div class="scene-tag">' + sceneLabel + '</div>' +
+        '<div class="mood-tag">' + moodLabel + '</div>' +
+        '<svg viewBox="0 0 800 260" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">' +
+          '<defs>' +
+            '<linearGradient id="wallCounter" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#DCEAE7"/><stop offset="100%" stop-color="#F5F1EB"/></linearGradient>' +
+            '<linearGradient id="wallOffice" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#EFEAE0"/><stop offset="100%" stop-color="#FAF7F2"/></linearGradient>' +
+            '<linearGradient id="wallReturn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E1F1E4"/><stop offset="100%" stop-color="#F5FBF6"/></linearGradient>' +
+            '<linearGradient id="tealGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22626B"/><stop offset="100%" stop-color="#174B52"/></linearGradient>' +
+            '<radialGradient id="skinJ" cx="38%" cy="32%" r="65%"><stop offset="0%" stop-color="#FAD4C3"/><stop offset="100%" stop-color="#E5AF99"/></radialGradient>' +
+            '<radialGradient id="skinP" cx="38%" cy="32%" r="65%"><stop offset="0%" stop-color="#F5C7AE"/><stop offset="100%" stop-color="#D9A082"/></radialGradient>' +
+          '</defs>' +
+          svgBody +
+        '</svg>';
+    }
+
+    function canAdvance() {
+      if (state.free) return true;
+      if (state.step === 0) return state.p1Box && state.p1Offer;
+      if (state.step === 1) return state.p2Symp && state.p2Meds && state.p2How && state.p2Adh;
+      if (state.step === 2) return state.p3Ok;
+      if (state.step === 3) return state.p4Mech && state.p4Time;
+      if (state.step === 4) return state.p5Done;
+      if (state.step === 5) return state.p6Goal && state.p6Plan && state.p6Sheet;
+      return false;
+    }
+
+    function renderControl() {
+      const ctrl = document.getElementById("controlCard");
+      let html = "";
+
+      if (state.step === 0) {
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 01 — Oferta do Serviço (Balcão)</div><div class="goal-badge">Meta: Esclarecer embalagem + Ofertar SF</div></div>';
+        html += '<div class="speech-bar"><span class="spk">Joana (30a):</span>"Vim buscar minha Levotiroxina 50 mcg, mas mudaram a embalagem. Será que mudaram a fórmula? Sinto fadiga intensa, sonolência e meu TSH deu elevado..."</div>';
+        html += '<div class="options-2col">';
+        html += '<button type="button" class="arc-btn' + (state.p1Box ? ' done' : '') + '" onclick="actP1Box()"><span><strong>1. Esclarecer embalagem e acolher:</strong> Explicar que a fórmula não mudou, mas validar que fadiga e TSH alto exigem avaliação.</span><span class="tag-mini">' + (state.p1Box ? 'Feito ✓' : 'Ação 1') + '</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p1Offer ? ' done' : '') + '"' + (!state.p1Box && !state.free ? ' disabled' : '') + ' onclick="actP1Offer()"><span><strong>2. Ofertar Seguimento Farmacoterapêutico:</strong> Convidar Joana para entrar no consultório privativo e revisar medicamentos.</span><span class="tag-mini">' + (state.p1Offer ? 'Aceito ✓' : 'Ação 2') + '</span></button>';
+        html += '<button type="button" class="arc-btn" onclick="actP1Wrong()"><span><strong>Dispensar rápido:</strong> Entregar a caixa e sugerir pedir ao médico para dobrar a dose sem investigar o uso.</span><span class="tag-mini">Testar</span></button>';
+        html += '</div>';
+      } else if (state.step === 1) {
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 02 — Primeira Entrevista Farmacêutica</div><div class="goal-badge">Meta: Desbloquear as 4 pistas clínicas</div></div>';
+        html += '<div class="speech-bar"><span class="spk">Consultório:</span>Joana entrou no consultório com seus exames e medicamentos. Explore a rotina dela clicando nas perguntas abaixo.</div>';
+        html += '<div class="options-2col">';
+        html += '<button type="button" class="arc-btn' + (state.p2Symp ? ' done' : '') + '" onclick="actP2Symp()"><span><strong>Sintomas e exames:</strong> Investigar início da fadiga/sonolência e valor do TSH.</span><span class="tag-mini">' + (state.p2Symp ? 'TSH 8,4 ✓' : 'Perguntar') + '</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p2Meds ? ' done' : '') + '" onclick="actP2Meds()"><span><strong>Outros medicamentos:</strong> Perguntar se usa outros remédios prescritos ou isentos de prescrição.</span><span class="tag-mini">' + (state.p2Meds ? 'Omeprazol ✓' : 'Perguntar') + '</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p2How ? ' done' : '') + '"' + (!state.p2Meds && !state.free ? ' disabled' : '') + ' onclick="actP2How()"><span><strong>Como utiliza cada um:</strong> Investigar horários, jejum e ingestão conjunta pela manhã.</span><span class="tag-mini">' + (state.p2How ? 'Juntos 7h ✓' : 'Perguntar') + '</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p2Adh ? ' done' : '') + '" onclick="actP2Adh()"><span><strong>Adesão diária:</strong> Confirmar se há esquecimentos ou pausas na tomada.</span><span class="tag-mini">' + (state.p2Adh ? '100% ✓' : 'Perguntar') + '</span></button>';
+        html += '</div>';
+      } else if (state.step === 2) {
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 03 — Estado de Situação</div><div class="goal-badge">Meta: Classificar o controle atual</div></div>';
+        html += '<div class="speech-bar"><span class="spk">Sistematização:</span>Relacione os problemas de saúde de Joana aos medicamentos e valide o Estado de Situação inicial.</div>';
+        html += '<div class="state-grid">';
+        html += '<div class="mini-row"><span><strong>Hipotireoidismo</strong> (Levotiroxina 50 mcg)</span><select id="selH" class="sel-3d"><option value="">Status...</option><option value="ok">Controlado</option><option value="no">Não controlado</option></select></div>';
+        html += '<div class="mini-row"><span><strong>Gastrite</strong> (Omeprazol 20 mg)</span><select id="selG" class="sel-3d"><option value="">Status...</option><option value="ok">Controlado</option><option value="no">Não controlado</option></select></div>';
+        html += '<button type="button" class="arc-btn' + (state.p3Ok ? ' done' : '') + '" onclick="actP3()"><span><strong>Validar</strong></span><span class="tag-mini">' + (state.p3Ok ? 'OK ✓' : 'Confirmar') + '</span></button>';
+        html += '</div>';
+      } else if (state.step === 3) {
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 04 — Fase de Estudo (Bancada Científica)</div><div class="goal-badge">Meta: Revisar mecanismo e intervalo de 45 min</div></div>';
+        html += '<div class="speech-bar"><span class="spk">Estudo Clínico (sem a paciente):</span>Consulte as fontes de evidência para fundamentar a interação entre Levotiroxina e Omeprazol.</div>';
+        html += '<div class="options-2col">';
+        html += '<button type="button" class="arc-btn' + (state.p4Mech ? ' done' : '') + '" onclick="actP4Mech()"><span><strong>1. Mecanismo farmacocinético:</strong> Verificar efeito do omeprazol no pH gástrico e na dissolução/absorção da levotiroxina.</span><span class="tag-mini">' + (state.p4Mech ? 'Revisado ✓' : 'Estudar') + '</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p4Time ? ' done' : '') + '" onclick="actP4Time()"><span><strong>2. Intervalo matinal baseado em evidências:</strong> Levotiroxina em jejum ao acordar, aguardar ~45 minutos e então administrar o Omeprazol.</span><span class="tag-mini">' + (state.p4Time ? 'Revisado ✓' : 'Estudar') + '</span></button>';
+        html += '</div>';
+      } else if (state.step === 4) {
+        const qs = [
+          { tag: "Levotiroxina 50 mcg • 1. Necessário?", q: "O medicamento é necessário para o hipotireoidismo diagnosticado?", ans: "sim", ok: "Correto! Diagnóstico confirmado requer reposição hormonal.", err: "O hipotireoidismo confirmado exige levotiroxina: é necessário." },
+          { tag: "Levotiroxina 50 mcg • 2. Efetivo?", q: "O medicamento está sendo efetivo (TSH 8,4 mUI/L + fadiga e sonolência)?", ans: "nao", ok: "Exato! TSH elevado e sintomas indicam inefetividade.", err: "TSH 8,4 mUI/L e sintomas mostram falha na meta terapêutica." },
+          { tag: "Levotiroxina 50 mcg • Quantitativo?", q: "A inefetividade é quantitativa (erro de dose prescrita)?", ans: "nao", ok: "Perfeito! Ocorre por interação na absorção → RNM: Inefetividade não quantitativa!", err: "Não é quantitativa: ocorre redução de absorção por interação com omeprazol." },
+          { tag: "Levotiroxina 50 mcg • 3. Seguro?", q: "O medicamento é seguro na dose atual (sem sinais de tireotoxicose)?", ans: "sim", ok: "Correto! Não há sinais de excesso ou toxicidade.", err: "Não há sinais de reação adversa ou toxicidade." },
+          { tag: "Omeprazol 20 mg • Avaliação Global", q: "O Omeprazol 20 mg é necessário, efetivo (gastrite controlada) e seguro?", ans: "sim", ok: "Concluído! RNM da levotiroxina classificado corretamente.", err: "A gastrite está controlada e bem tolerada." }
+        ];
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 05 — Fase de Avaliação (Algoritmo RNM)</div><div class="goal-badge">Meta: Percorrer o algoritmo do Método Dáder</div></div>';
+        if (!state.p5Done) {
+          const cur = qs[state.p5Idx];
+          html += '<div class="algo-box"><div><small style="color:var(--muted);font-weight:800;">' + cur.tag + '</small><div style="font-weight:700;color:var(--teal);font-size:0.88rem;">' + cur.q + '</div></div><div class="yn-group"><button type="button" class="yn-btn" onclick="actP5(\'sim\')">SIM</button><button type="button" class="yn-btn" onclick="actP5(\'nao\')">NÃO</button></div></div>';
+        } else {
+          html += '<div class="speech-bar" style="border-left-color:var(--terracotta);"><span class="spk">RNM Classificado:</span><strong>Inefetividade não quantitativa</strong> da Levotiroxina 50 mcg associada à interação farmacocinética com Omeprazol 20 mg.</div>';
+        }
+      } else if (state.step === 5) {
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 06 — Fase de Intervenção e Plano de Atuação</div><div class="goal-badge">Meta: Pactuar intervalo de 45 min pela manhã e registrar</div></div>';
+        html += '<div class="speech-bar"><span class="spk">Decisão Partilhada:</span>Joana retornou ao consultório. Defina objetivos, pactue a sequência matinal e registre na Folha de Intervenção.</div>';
+        html += '<div class="options-2col">';
+        html += '<button type="button" class="arc-btn' + (state.p6Goal ? ' done' : '') + '" onclick="actP6Goal()"><span><strong>1. Definir e priorizar objetivos:</strong> P1: Normalizar TSH e reverter fadiga/sonolência; P2: Manter gastrite controlada.</span><span class="tag-mini">' + (state.p6Goal ? 'Feito ✓' : 'Passo 1') + '</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p6Plan ? ' done' : '') + '"' + (!state.p6Goal && !state.free ? ' disabled' : '') + ' onclick="actP6Plan()"><span><strong>2. Pactuar sequência matinal (45 min):</strong> Joana toma Levotiroxina 50 mcg em jejum ao acordar, aguarda ~45 minutos e então utiliza o Omeprazol 20 mg.</span><span class="tag-mini">' + (state.p6Plan ? 'Pactuado ✓' : 'Passo 2') + '</span></button>';
+        html += '<button type="button" class="arc-btn" onclick="actP6Wrong()"><span><strong>Suspender Omeprazol:</strong> Orientar parada abrupta do omeprazol sem avaliar a gastrite.</span><span class="tag-mini">Testar</span></button>';
+        html += '<button type="button" class="arc-btn' + (state.p6Sheet ? ' done' : '') + '"' + (!state.p6Plan && !state.free ? ' disabled' : '') + ' onclick="actP6Sheet()"><span><strong>3. Registrar na Folha de Intervenção:</strong> Documentar 1 RNM por folha, via de comunicação e retorno em 6 semanas.</span><span class="tag-mini">' + (state.p6Sheet ? 'Registrado ✓' : 'Passo 3') + '</span></button>';
+        html += '</div>';
+      } else {
+        html += '<div class="ctrl-top"><div class="phase-title">Etapa 07 — Consulta de Retorno (6 Semanas Depois)</div><div class="goal-badge">Meta: Avaliar desfecho e manter resultados positivos</div></div>';
+        html += '<div class="speech-bar"><span class="spk">Joana (sorridente e disposta):</span>"Segui certinho! Tomo a Levotiroxina em jejum ao acordar, espero uns 45 minutos e aí tomo o Omeprazol. A fadiga e a sonolência sumiram e meu TSH caiu para <strong>2,3 mUI/L</strong>!"</div>';
+        html += '<div class="options-2col">';
+        html += '<button type="button" class="arc-btn' + (state.p7Done ? ' done' : '') + '" onclick="actP7()"><span><strong>Encerrar Folha de Intervenção & Registrar Manutenção:</strong> Documentar RNM resolvido e ativar acompanhamento de resultados positivos.</span><span class="tag-mini">' + (state.p7Done ? 'Concluído ✓' : 'Finalizar') + '</span></button>';
+        if (state.p7Done) {
+          html += '<button type="button" class="arc-btn done" onclick="location.reload()"><span><strong>🏆 Simulador Concluído!</strong> Clique aqui para reiniciar a demonstração desde o balcão.</span><span class="tag-mini">↻ Reiniciar</span></button>';
+        }
+        html += '</div>';
+      }
+
+      const toastCls = state.toast.kind === "ok" ? "toast-ok" : (state.toast.kind === "err" ? "toast-err" : "toast-neutral");
+      html += '<div class="ctrl-bottom">';
+      html += '<div class="toast-bar ' + toastCls + '">' + state.toast.text + '</div>';
+      if (state.step < 6) {
+        html += '<button type="button" class="next-3d"' + (!canAdvance() ? ' disabled' : '') + ' onclick="advanceStep()">Avançar Etapa →</button>';
+      }
+      html += '</div>';
+
+      ctrl.innerHTML = html;
+    }
+
+    function render() {
+      renderStepper();
+      renderStage();
+      renderControl();
+      renderDossier();
+    }
+
+    function advanceStep() {
+      if (!canAdvance()) return;
+      if (state.step === 0 || state.step === 5) {
+        state.joanaLeaving = true;
+        renderStage();
+        setTimeout(function () {
+          state.joanaLeaving = false;
+          state.step++;
+          state.toast = { text: "Etapa avançada! Continue a condução clínica.", kind: "neutral" };
+          render();
+        }, 420);
+      } else {
+        state.step++;
+        state.toast = { text: "Etapa avançada! Continue a condução clínica.", kind: "neutral" };
+        render();
+      }
+    }
+
+    function actP1Box() {
+      state.p1Box = true;
+      addClue("c1", "Queixa no Balcão", "Levotiroxina 50 mcg com nova embalagem; relata fadiga, sonolência e TSH elevado.");
+      setToast("✓ Você tranquilizou Joana sobre a embalagem e acolheu os sintomas para investigação.", "ok");
+    }
+
+    function actP1Offer() {
+      state.p1Offer = true;
+      addClue("c2", "Oferta do Serviço", "Joana aceitou o Seguimento Farmacoterapêutico em consultório.");
+      setToast("✓ Ótimo! Clique em 'Avançar Etapa' para acompanhar Joana até o consultório.", "ok");
+    }
+
+    function actP1Wrong() {
+      failAction(5, "⚠️ Dispensar sem investigar pode gerar aumento desnecessário da dose de levotiroxina.");
+    }
+
+    function actP2Symp() {
+      state.p2Symp = true;
+      addClue("c3", "Parâmetros Clínicos", "Fadiga intensa e sonolência há ~2 meses; TSH = 8,4 mUI/L.");
+      setToast("✓ Pista desbloqueada: sintomas e TSH elevado surgiram há cerca de 2 meses.", "ok");
+    }
+
+    function actP2Meds() {
+      state.p2Meds = true;
+      addClue("c4", "Medicamento Adicional", "Usa Omeprazol 20 mg/dia há 2 meses para gastrite.");
+      setToast("✓ Descoberta-chave: Joana iniciou Omeprazol 20 mg há 2 meses para gastrite!", "ok");
+    }
+
+    function actP2How() {
+      state.p2How = true;
+      addClue("c5", "Rotina de Uso", "Toma Levotiroxina 50 mcg e Omeprazol 20 mg juntos, no mesmo instante, em jejum pela manhã.");
+      setToast("✓ Interação detectada: ingestão simultânea em jejum pela manhã sem intervalo.", "ok");
+    }
+
+    function actP2Adh() {
+      state.p2Adh = true;
+      addClue("c6", "Adesão", "Adesão diária regular, sem esquecimentos.");
+      setToast("✓ Adesão confirmada: não há falha por esquecimento de doses.", "ok");
+    }
+
+    function actP3() {
+      const h = document.getElementById("selH").value;
+      const g = document.getElementById("selG").value;
+      if (h === "no" && g === "ok") {
+        state.p3Ok = true;
+        setToast("✓ Estado de Situação validado: Hipotireoidismo não controlado e Gastrite controlada.", "ok");
+      } else {
+        failAction(5, "⚠️ Revise: Hipotireoidismo está não controlado (TSH 8,4 + sintomas) e Gastrite está controlada.");
+      }
+    }
+
+    function actP4Mech() {
+      state.p4Mech = true;
+      addClue("c7", "Evidência Farmacocinética", "Omeprazol eleva o pH gástrico e reduz a dissolução/absorção da levotiroxina.");
+      setToast("✓ Evidência confirmada: o aumento do pH gástrico reduz a biodisponibilidade da levotiroxina.", "ok");
+    }
+
+    function actP4Time() {
+      state.p4Time = true;
+      setToast("✓ Manejo confirmado: Levotiroxina em jejum ao acordar, aguardar ~45 minutos e administrar o Omeprazol.", "ok");
+    }
+
+    function actP5(ans) {
+      const key = ["sim", "nao", "nao", "sim", "sim"];
+      const okMsg = [
+        "Correto! Hipotireoidismo confirmado exige levotiroxina.",
+        "Correto! TSH 8,4 mUI/L e fadiga indicam inefetividade.",
+        "Correto! Ocorre por interação na absorção → RNM: Inefetividade não quantitativa!",
+        "Correto! Não há sinais de excesso ou toxicidade.",
+        "Correto! Gastrite controlada e sem eventos adversos."
+      ];
+      const errMsg = [
+        "Revise: o hipotireoidismo confirmado exige reposição hormonal.",
+        "Revise: TSH alto e sintomas mostram que não está efetivo.",
+        "Revise: não é erro de dose prescrita, mas interação na absorção (Inefetividade não quantitativa).",
+        "Revise: não há sinais de insegurança na dose atual.",
+        "Revise: a gastrite está assintomática e controlada."
+      ];
+      if (ans === key[state.p5Idx]) {
+        const msg = okMsg[state.p5Idx];
+        if (state.p5Idx === 2) {
+          addClue("c8", "RNM Identificado", "Inefetividade não quantitativa da Levotiroxina 50 mcg por interação com Omeprazol 20 mg.", "rnm");
+        }
+        state.p5Idx++;
+        if (state.p5Idx >= key.length) state.p5Done = true;
+        setToast("✓ " + msg, "ok");
+      } else {
+        failAction(5, "⚠️ " + errMsg[state.p5Idx]);
+      }
+    }
+
+    function actP6Goal() {
+      state.p6Goal = true;
+      setToast("✓ Objetivos definidos e hierarquizados.", "ok");
+    }
+
+    function actP6Plan() {
+      state.p6Plan = true;
+      setToast("✓ Pactuado com Joana: Levotiroxina em jejum ao acordar, aguardar ~45 minutos e tomar o Omeprazol.", "ok");
+    }
+
+    function actP6Wrong() {
+      failAction(5, "⚠️ Não é necessário suspender o omeprazol; basta manter o intervalo de ~45 minutos pela manhã.");
+    }
+
+    function actP6Sheet() {
+      state.p6Sheet = true;
+      setToast("✓ Folha de Intervenção preenchida corretamente com um único RNM.", "ok");
+    }
+
+    function actP7() {
+      state.p7Done = true;
+      addClue("c9", "Desfecho (6 Semanas)", "RNM resolvido! Sem fadiga/sonolência; TSH normalizado (8,4 → 2,3 mUI/L).", "win");
+      setToast("🎉 Caso finalizado com êxito! Todos os registros do Método Dáder concluídos.", "ok");
+    }
+
+    render();
+  </script>
+</body>
+</html>
